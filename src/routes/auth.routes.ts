@@ -8,10 +8,7 @@ import { usersCollection } from "../services/mongodb";
 import { comparePasswords, hashPassword } from "../utils/passwordHasher";
 require("dotenv").config();
 
-
 export const authRouter = express.Router();
-
-
 
 const signUpSchema = z.object({
   firstName: z.string().min(3, "first name is required"),
@@ -25,14 +22,19 @@ const signUpSchema = z.object({
     city: z.string(),
     state: z.string(),
   }),
-  dob: z.coerce.date()
-
+  dob: z.coerce.date(),
 });
 
+const loginSchema = z.object({
+  email: z.string().email("email is required"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
+});
 
 authRouter.post("/create-account", async (req, res) => {
   try {
     signUpSchema.parse(req.body);
+    console.log(req.body);
+
     console.log("password", req?.body?.password);
 
     const hashedPassword = await hashPassword(req.body.password);
@@ -40,46 +42,39 @@ authRouter.post("/create-account", async (req, res) => {
     const userData = {
       firstName: req.body.firstName,
       surName: req.body.surName,
-      phoneNumber:req.body.phoneNumber,
-      gender:req.body.gender,
-      homeAddress:req.body.homeAddress,
+      phoneNumber: req.body.phoneNumber,
+      gender: req.body.gender,
+      homeAddress: req.body.homeAddress,
       email: req.body.email,
-      dob:req.body.dob,
+      dob: req.body.dob,
+      password: hashedPassword,
     };
 
-    usersCollection.insertOne({
-      userData,
-      password: hashedPassword,
+    const result = await usersCollection.insertOne({
+      ...userData,
     });
 
-    const token = jwt.sign(
-      {
-        email: req.body.email,
-      },
-      accessSecret,
-      {
-        expiresIn: "2min",
-      }
-    );
-    const refreshToken = jwt.sign(
-      {
-        email: req.body.email,
-      },
-      refreshSecret,
-      {
-        expiresIn: "7days",
-      }
-    );
-
-    const userInfo = {
-      userData,
-      accessToken: token,
-      refreshToken,
+    const tokenPayload = {
+      email: userData.email,
+      id: result.insertedId,
     };
 
+    const token = jwt.sign(tokenPayload, accessSecret, {
+      expiresIn: "3min",
+    });
+    console.log("token", token);
+
+    const refreshToken = jwt.sign(tokenPayload, refreshSecret, {
+      expiresIn: "7day",
+    });
+    console.log("refreshToken", refreshToken);
+
     res.json({
-      userInfo,
-      message: "received info",
+      message: "User created successfully",
+      data: {
+        token,
+        refreshToken,
+      },
     });
   } catch (error) {
     res.status(400).json({
@@ -89,55 +84,70 @@ authRouter.post("/create-account", async (req, res) => {
 });
 
 authRouter.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    res.status(400).json({ error: "email and password are required" });
-  }
+  try {
+    const allUsers = await usersCollection.find({}).toArray();
+    console.log(allUsers);
 
-  const existingUser = await usersCollection.findOne({
-    email,
-  });
+    loginSchema.parse(req.body);
 
-  if (!existingUser) {
-    res.status(400).json({ error: "User not found" });
-  }
-  const isPasswordValid = await comparePasswords(
-    password,
-    existingUser?.password
-  );
+    const email = req.body.email.trim().toLowerCase();
+    const password = req.body.password;
 
-  if (isPasswordValid) {
-    const token = jwt.sign(
-      {
-        email: req.body.email,
-      },
-      accessSecret,
-      { expiresIn: "3min" }
-    );
-    const refreshToken = jwt.sign(
-      {
-        email: req.body.email,
-      },
-      refreshSecret,
-      {
-        expiresIn: "7days",
-      }
-    );
-    const data = {
-      email: req.body.email,
-      accessToken: token,
-      refreshToken,
-    };
+    console.log(email, password);
 
-    res.json({
-      message: "login successful",
-      data,
+    const existingUser = await usersCollection.findOne({
+      email,
     });
-  } else {
-    res.status(401).json({ message: "invalid credentials", data: null });
+    console.log(existingUser);
+    if (!existingUser) {
+      res.status(400).json({ error: "User not found" });
+    }
+
+    const isPasswordValid = await comparePasswords(
+      req.body.password,
+      existingUser?.password
+    );
+    if (isPasswordValid) {
+      const token = jwt.sign(
+        {
+          email,
+        },
+        accessSecret,
+        { expiresIn: "5min" }
+      );
+      const refreshToken = jwt.sign(
+        {
+          email,
+        },
+        refreshSecret,
+        {
+          expiresIn: "7days",
+        }
+      );
+
+      const data = {
+        email: existingUser?.email,
+        firstName: existingUser?.firstName,
+        lastName: existingUser?.lastName,
+        phoneNumber: existingUser?.phoneNumber,
+        gender: existingUser?.gender,
+        homeAddress: existingUser?.homeAddress,
+        dob: existingUser?.dob,
+        accessToken: token,
+        refreshToken,
+      };
+
+      res.json({
+        message: "User logged in successfully",
+        data,
+      });
+    } else {
+      res.status(400).json({ error: "Invalid credentials" });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error });
   }
 });
-
 
 authRouter.post("/refresh-token", async (req, res) => {
   try {

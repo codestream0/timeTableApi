@@ -4,16 +4,17 @@ import { subjectCollection } from "../services/mongodb";
 
 export const subjectRouter = express.Router();
 
-subjectRouter.post("/add-todo", authMiddleWare, async (req, res) => {
+subjectRouter.post("/add-subject", authMiddleWare, async (req, res) => {
   const { subject } = req.body;
   if (!subject) {
-    res.status(400).json({ error: "Todo is required" });
+    res.status(400).json({ error: "subject is required" });
   }
 
   subjectCollection
     .insertOne({
       subject: subject,
-      fullName: req.body.firstName + req.body.surName,
+      email: req.body.user.email,
+      createdAt: new Date(),
     })
     .then((result) => {
       console.log("subject added successfully", result);
@@ -22,7 +23,6 @@ subjectRouter.post("/add-todo", authMiddleWare, async (req, res) => {
   res.json({
     message: "subject added successfully",
     subject,
-    fullName: req.body.firstName + req.body.surName,
-    email: req.body.email,
+    email: req.body.user.email,
   });
 });

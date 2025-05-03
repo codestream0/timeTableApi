@@ -17,7 +17,7 @@ export const authMiddleWare = (
     return;
   }
 
-  jwt.verify(token!, accessSecret, (error, user) => {
+  jwt.verify(token!, accessSecret, (error: any, user: any) => {
     if (error) {
       // console.log(error);
       res.status(403).json({ message: "invalid token please login again" });
