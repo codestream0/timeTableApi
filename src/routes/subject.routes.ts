@@ -66,3 +66,17 @@ subjectRouter.post("/add-subject", authMiddleWare, async (req, res) => {
     });
   }
 });
+
+
+subjectRouter.get("/subject-list",authMiddleWare, async (req,res)=>{
+try {
+  const subjectList = await subjectCollection.find().toArray();
+  console.log("subjectList: ", subjectList)
+  res.status(200).json({
+    message:"subject fetched successfully",
+    data:subjectList,
+  })
+} catch (error) {
+  res.status(501).json({ message: "internal server error" });
+}
+})
