@@ -23,6 +23,7 @@ const signUpSchema = z.object({
     state: z.string(),
   }),
   dob: z.coerce.date(),
+  // role:z.enum(["Admin"])
 });
 
 const loginSchema = z.object({
@@ -34,6 +35,14 @@ authRouter.post("/create-account", async (req, res) => {
   try {
     signUpSchema.parse(req.body);
     console.log(req.body);
+    const existingUser = await usersCollection.findOne({
+      email: req.body.email,
+    });
+    if (existingUser) {
+      res.json({
+        message: "user already exists",
+      });
+    }
 
     console.log("password", req?.body?.password);
 
