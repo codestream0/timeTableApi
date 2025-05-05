@@ -25,6 +25,7 @@ export const authMiddleWare = (
     }
     if (!error) {
       (req as any).user = user;
+      // req.body.user=user
       next();
     }
   });

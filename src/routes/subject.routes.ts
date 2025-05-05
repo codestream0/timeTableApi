@@ -37,8 +37,9 @@ subjectRouter.post("/add-subject", authMiddleWare, async (req, res) => {
       endTime: req.body.endTime,
     };
 
+    const user = (req as any).user;
     const userInfo = await usersCollection.findOne({
-      email: req.body.user.email,
+      email: user.email,
     });
     console.log("userInfo", userInfo?._id);
 
@@ -46,7 +47,7 @@ subjectRouter.post("/add-subject", authMiddleWare, async (req, res) => {
       .insertOne({
         userId: userInfo?._id,
         ...subjectInfo,
-        email: req.body.user.email,
+        email: user.email,
         createdAt: new Date(),
       })
       .then((result) => {
@@ -56,7 +57,7 @@ subjectRouter.post("/add-subject", authMiddleWare, async (req, res) => {
     res.json({
       message: "subject added successfully",
       subjectInfo,
-      email: req.body.user.email,
+      email: user.email,
     });
     
     res.status(202).json({ message: "subject created" });

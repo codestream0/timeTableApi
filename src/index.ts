@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { authRouter } from "./routes/auth.routes";
 import {subjectRouter } from "./routes/subject.routes";
+import bodyParser from "body-parser";
 // server is right below
 const app = express();
 //
@@ -10,8 +11,10 @@ const port = 3000;
 
 // Middlewares
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended:true}))
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/auth", authRouter);
