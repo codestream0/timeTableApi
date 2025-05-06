@@ -6,23 +6,24 @@ import { ObjectId } from "mongodb";
 
 export const subjectRouter = express.Router();
 
-// const timeSchema = z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, {
-//   message: "Invalid time format. Expected HH:MM",
-// });
-
 const subjectSchema = z.object({
   subjectName: z.string().min(2, "subject is required"),
   courseCode: z.string().min(3, "course code is required "),
   courseLecturer: z.string().min(3, "course lecturer is required"),
-  subjectVenue: z.object({
-    class: z.string(),
-    description: z.string(),
-  }),
+  subjectVenue: z.string().min(2,"subject venue is required"),
   creditUnit: z.enum(["one", "two", "three", "four"]),
-  // startTime: timeSchema,
-  // endTime: timeSchema,
-  time:z.enum(["10:00 -- 12:00","1:00 -- 3:00"])
+  day:z.enum(["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]),
+  time:z.enum(["8:00 -- 10:00","10:00 -- 12:00","12:00 -- 2:00","2:00 -- 4:00","4:00 -- 6:00"])
 });
+
+const updateSubjectSchema = subjectSchema.extend({
+  id: z.string().min(1, "Subject ID is required"),
+});
+
+const deleteSchema = z.object({
+  id: z.string().min(1, "Subject ID is required"),
+});
+
 
 subjectRouter.post("/add-subject", authMiddleWare, async (req, res) => {
   try {
@@ -35,6 +36,7 @@ subjectRouter.post("/add-subject", authMiddleWare, async (req, res) => {
       courseLecturer: req.body.courseLecturer,
       subjectVenue: req.body.subjectVenue,
       creditUnit: req.body.creditUnit,
+      day:req.body.day,
       time:req.body.time,
     };
 
@@ -47,7 +49,7 @@ subjectRouter.post("/add-subject", authMiddleWare, async (req, res) => {
 
     if(existingSubject){
 res.json({
-  message:"time or subject is been occupied",
+  message:"subject is been occupied",
 })
     }
 
@@ -91,11 +93,6 @@ try {
 })
 
 
-
-const updateSubjectSchema = subjectSchema.extend({
-  id: z.string().min(1, "Subject ID is required"),
-});
-
 subjectRouter.put("/edit-subject", authMiddleWare, async (req, res) => {
   try {
     const parsedData = updateSubjectSchema.parse(req.body);
@@ -122,6 +119,26 @@ subjectRouter.put("/edit-subject", authMiddleWare, async (req, res) => {
     return res.status(200).json({ message: "Subject edited successfully" });
   } catch (error) {
     return res.status(400).json({
+      error: error instanceof z.ZodError ? error.errors : "Server error",
+    });
+  }
+});
+
+
+subjectRouter.delete("/delete-subject", authMiddleWare, async (req, res) => {
+  try {
+    const parsed = deleteSchema.parse(req.body);
+    const subjectId = new ObjectId(parsed.id);
+
+    const result = await subjectCollection.deleteOne({ _id: subjectId });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Subject not found or already deleted" });
+    }
+
+    res.status(200).json({ message: "Subject deleted successfully" });
+  } catch (error) {
+    res.status(400).json({
       error: error instanceof z.ZodError ? error.errors : "Server error",
     });
   }
