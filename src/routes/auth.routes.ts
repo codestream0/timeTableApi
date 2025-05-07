@@ -23,6 +23,7 @@ const signUpSchema = z.object({
     state: z.string(),
   }),
   dob: z.coerce.date(),
+  role: z.enum(["Admin", "User", "Moderator"]).default("User"),
   // role:z.enum(["Admin"])
 });
 
@@ -57,6 +58,7 @@ authRouter.post("/create-account", async (req, res) => {
       email: req.body.email,
       dob: req.body.dob,
       password: hashedPassword,
+      role: req.body.role,
     };
 
     const result = await usersCollection.insertOne({
@@ -66,6 +68,7 @@ authRouter.post("/create-account", async (req, res) => {
     const tokenPayload = {
       email: userData.email,
       id: result.insertedId,
+      role: userData.role,
     };
 
     const token = jwt.sign(tokenPayload, accessSecret, {
@@ -198,6 +201,5 @@ authRouter.post("/refresh-token", async (req, res) => {
     res.status(500).json({ message: "internal server error" });
   }
 });
-
 
 // authRouter.post
