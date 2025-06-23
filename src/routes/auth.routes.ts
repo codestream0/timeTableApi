@@ -1,6 +1,5 @@
 import express from "express";
 import { z } from "zod";
-
 import * as jwt from "jsonwebtoken";
 import "dotenv/config";
 import { accessSecret, refreshSecret } from "../variables";
@@ -17,11 +16,11 @@ const signUpSchema = z.object({
   phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
   password: z.string().min(6, "Password must be at least 6 characters long"),
   gender: z.enum(["male", "female", "other"]),
-  homeAddress: z.object({
-    street: z.string(),
-    city: z.string(),
-    state: z.string(),
-  }),
+  // homeAddress: z.object({
+  //   street: z.string(),
+  //   city: z.string(),
+  //   state: z.string(),
+  // }),
   dob: z.coerce.date(),
   role: z.enum(["Admin", "User", "Moderator"]).default("User"),
   // role:z.enum(["Admin"])
@@ -37,10 +36,10 @@ authRouter.post("/create-account", async (req, res) => {
     signUpSchema.parse(req.body);
     console.log(req.body);
     const existingUser = await usersCollection.findOne({
-      email: req.body.email,
+      email: req.body.email.trim().toLowerCase(),
     });
     if (existingUser) {
-      res.json({
+      res.status(500).json({
         message: "user already exists",
       });
     }
@@ -55,7 +54,7 @@ authRouter.post("/create-account", async (req, res) => {
       phoneNumber: req.body.phoneNumber,
       gender: req.body.gender,
       homeAddress: req.body.homeAddress,
-      email: req.body.email,
+      email: req.body.email.trim().toLowerCase(),
       dob: req.body.dob,
       password: hashedPassword,
       role: req.body.role,
@@ -96,6 +95,7 @@ authRouter.post("/create-account", async (req, res) => {
 });
 
 authRouter.post("/login", async (req, res) => {
+  console.log("login request received");
   try {
     const allUsers = await usersCollection.find({}).toArray();
     console.log(allUsers);

@@ -111,54 +111,64 @@ subjectRouter.get("/subject-list", authMiddleWare, async (req, res) => {
   }
 });
 
-subjectRouter.put("/edit-subject", authMiddleWare, async (req, res) => {
-  try {
-    const parsedData = updateSubjectSchema.parse(req.body);
-    const subjectId = new ObjectId(parsedData.id);
+subjectRouter.put(
+  "/edit-subject",
+  authorizeRoles("Admin", "Moderator"),
+  authMiddleWare,
+  async (req, res) => {
+    try {
+      const parsedData = updateSubjectSchema.parse(req.body);
+      const subjectId = new ObjectId(parsedData.id);
 
-    const updatedSubject = {
-      subjectName: parsedData.subjectName,
-      courseCode: parsedData.courseCode,
-      courseLecturer: parsedData.courseLecturer,
-      subjectVenue: parsedData.subjectVenue,
-      creditUnit: parsedData.creditUnit,
-      time: parsedData.time,
-    };
+      const updatedSubject = {
+        subjectName: parsedData.subjectName,
+        courseCode: parsedData.courseCode,
+        courseLecturer: parsedData.courseLecturer,
+        subjectVenue: parsedData.subjectVenue,
+        creditUnit: parsedData.creditUnit,
+        time: parsedData.time,
+      };
 
-    const result = await subjectCollection.updateOne(
-      { _id: subjectId },
-      { $set: updatedSubject }
-    );
+      const result = await subjectCollection.updateOne(
+        { _id: subjectId },
+        { $set: updatedSubject }
+      );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: "Subject not found" });
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ message: "Subject not found" });
+      }
+
+      return res.status(200).json({ message: "Subject edited successfully" });
+    } catch (error) {
+      return res.status(400).json({
+        error: error instanceof z.ZodError ? error.errors : "Server error",
+      });
     }
-
-    return res.status(200).json({ message: "Subject edited successfully" });
-  } catch (error) {
-    return res.status(400).json({
-      error: error instanceof z.ZodError ? error.errors : "Server error",
-    });
   }
-});
+);
 
-subjectRouter.delete("/delete-subject", authMiddleWare, async (req, res) => {
-  try {
-    const parsed = deleteSchema.parse(req.body);
-    const subjectId = new ObjectId(parsed.id);
+subjectRouter.delete(
+  "/delete-subject",
+  authorizeRoles("Admin", "Moderator"),
+  authMiddleWare,
+  async (req, res) => {
+    try {
+      const parsed = deleteSchema.parse(req.body);
+      const subjectId = new ObjectId(parsed.id);
 
-    const result = await subjectCollection.deleteOne({ _id: subjectId });
+      const result = await subjectCollection.deleteOne({ _id: subjectId });
 
-    if (result.deletedCount === 0) {
-      return res
-        .status(404)
-        .json({ message: "Subject not found or already deleted" });
+      if (result.deletedCount === 0) {
+        return res
+          .status(404)
+          .json({ message: "Subject not found or already deleted" });
+      }
+
+      res.status(200).json({ message: "Subject deleted successfully" });
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof z.ZodError ? error.errors : "Server error",
+      });
     }
-
-    res.status(200).json({ message: "Subject deleted successfully" });
-  } catch (error) {
-    res.status(400).json({
-      error: error instanceof z.ZodError ? error.errors : "Server error",
-    });
   }
-});
+);

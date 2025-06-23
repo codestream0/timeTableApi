@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
 import { authRouter } from "./routes/auth.routes";
-import {subjectRouter } from "./routes/subject.routes";
+import { subjectRouter } from "./routes/subject.routes";
 import bodyParser from "body-parser";
 // server is right below
 const app = express();
@@ -10,15 +10,20 @@ const app = express();
 const port = 3000;
 
 // Middlewares
-app.use(cors());
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({extended:true}))
+app.use(cors({ origin: "*" })); // Allow all origins for CORS
+
+app.use(bodyParser.json());
+
+app.use(bodyParser.urlencoded({ extended: true }));
 // app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/auth", authRouter);
 app.use("/subject", subjectRouter);
+app.get("/", (req, res) => {
+  res.send("Welcome to the API");
+});
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
