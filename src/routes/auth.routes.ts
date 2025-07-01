@@ -44,7 +44,7 @@ authRouter.post("/create-account", async (req, res) => {
       email: req.body.email.trim().toLowerCase(),
     });
     if (existingUser) {
-      res.status(500).json({
+     return res.status(400).json({
         message: "user already exists",
       });
     }
@@ -58,7 +58,7 @@ authRouter.post("/create-account", async (req, res) => {
       surName: req.body.surName,
       phoneNumber: req.body.phoneNumber,
       gender: req.body.gender,
-      homeAddress: req.body.homeAddress,
+      homeAddress: req.body.address,
       email: req.body.email.trim().toLowerCase(),
       dob: req.body.dob,
       password: hashedPassword,
@@ -93,6 +93,7 @@ authRouter.post("/create-account", async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Signup error:", error);
     res.status(400).json({
       error: error instanceof z.ZodError ? error.errors : "server error",
     });
@@ -104,10 +105,8 @@ authRouter.post("/login", async (req, res) => {
   console.log("Request body:", req.body);
   try {
     loginSchema.parse(req.body);
-    const allUsers = await usersCollection.find({}).toArray();
-    console.log(allUsers);
-
-
+    // const allUsers = await usersCollection.find({}).toArray();
+    // console.log(allUsers);
     const email = req.body.email.trim().toLowerCase();
     const password = req.body.password;
 
@@ -118,13 +117,16 @@ authRouter.post("/login", async (req, res) => {
     });
     console.log(existingUser);
     if (!existingUser) {
-      res.status(400).json({ error: "User not found" });
+      return res.status(400).json({ error: "User not found" });
     }
 
     const isPasswordValid = await comparePasswords(
       req.body.password,
       existingUser?.password
     );
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: "Invalid credentials" });
+    }
     if (isPasswordValid) {
       const token = jwt.sign(
         {
@@ -146,7 +148,7 @@ authRouter.post("/login", async (req, res) => {
       const data = {
         email: existingUser?.email,
         firstName: existingUser?.firstName,
-        lastName: existingUser?.lastName,
+        lastName: existingUser?.surName,
         phoneNumber: existingUser?.phoneNumber,
         gender: existingUser?.gender,
         homeAddress: existingUser?.homeAddress,
@@ -163,6 +165,7 @@ authRouter.post("/login", async (req, res) => {
       res.status(400).json({ error: "Invalid credentials" });
     }
   } catch (error) {
+    console.error("Login error:", error);
     res.status(400).json({ error: error });
   }
 });
