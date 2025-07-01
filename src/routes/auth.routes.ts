@@ -4,7 +4,10 @@ import * as jwt from "jsonwebtoken";
 import "dotenv/config";
 import { accessSecret, refreshSecret } from "../variables";
 import { usersCollection } from "../services/mongodb";
+import { ObjectId } from "mongodb";
 import { comparePasswords, hashPassword } from "../utils/passwordHasher";
+import { authorizeRoles } from "../middlewares/authorizedRoles";
+import { authMiddleWare } from "../middlewares/authMiddleware";
 require("dotenv").config();
 
 export const authRouter = express.Router();
@@ -16,14 +19,10 @@ const signUpSchema = z.object({
   phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
   password: z.string().min(6, "Password must be at least 6 characters long"),
   gender: z.enum(["male", "female", "other"]),
-  // homeAddress: z.object({
-  //   street: z.string(),
-  //   city: z.string(),
-  //   state: z.string(),
-  // }),
+  address: z.string(),
   dob: z.coerce.date(),
   role: z.enum(["Admin", "User", "Moderator"]).default("User"),
-  // role:z.enum(["Admin"])
+  
 });
 
 const loginSchema = z.object({
@@ -31,6 +30,12 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters long"),
 });
 
+const updateRoleSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
+  newRole: z.enum(["User", "Moderator"], {
+    errorMap: () => ({ message: "Role must be either User or Moderator" })
+  }),
+});
 authRouter.post("/create-account", async (req, res) => {
   try {
     signUpSchema.parse(req.body);
@@ -96,11 +101,12 @@ authRouter.post("/create-account", async (req, res) => {
 
 authRouter.post("/login", async (req, res) => {
   console.log("login request received");
+  console.log("Request body:", req.body);
   try {
+    loginSchema.parse(req.body);
     const allUsers = await usersCollection.find({}).toArray();
     console.log(allUsers);
 
-    loginSchema.parse(req.body);
 
     const email = req.body.email.trim().toLowerCase();
     const password = req.body.password;
@@ -125,7 +131,7 @@ authRouter.post("/login", async (req, res) => {
           email,
         },
         accessSecret,
-        { expiresIn: "5min" }
+        { expiresIn: "25min" }
       );
       const refreshToken = jwt.sign(
         {
@@ -185,7 +191,7 @@ authRouter.post("/refresh-token", async (req, res) => {
             { email: user.email! },
             accessSecret,
             {
-              expiresIn: "5min",
+              expiresIn: "25min",
             }
           );
           newToken = newAccessToken;
@@ -201,5 +207,87 @@ authRouter.post("/refresh-token", async (req, res) => {
     res.status(500).json({ message: "internal server error" });
   }
 });
+authRouter.get("/users-list", authMiddleWare,
+  authorizeRoles("Admin"),
+  async (req, res) => {
+  try {
+    const usersList = await usersCollection.find().toArray();
+    console.log("users List: ", usersList);
+    res.status(200).json({
+      message: "Users fetched successfully",
+      data: usersList,
+    });
+  } catch (error) {
+    res.status(501).json({ message: "internal server error" });
+  }
+});
+authRouter.put("/update-user-role", authMiddleWare,
+  authorizeRoles("Admin"),
+  async (req, res) => {
+    try {
+      const { userId, newRole } = updateRoleSchema.parse(req.body);
+      
+      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
+      if (user.role === "Admin") {
+        return res.status(403).json({ 
+          message: "Cannot change role of Admin user" 
+        });
+      }
+
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { role: newRole } }
+      );
+
+      if (result.modifiedCount === 0) {
+        return res.status(400).json({ message: "Failed to update user role" });
+      }
+
+      res.json({
+        message: `User role updated to ${newRole} successfully`,
+        data: {
+          userId,
+          newRole,
+        },
+      });
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(400).json({
+        error: error instanceof z.ZodError ? error.errors : "server error",
+      });
+    }
+  }
+);
+authRouter.get("/user/:id", authMiddleWare,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const user = await usersCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { password: 0 } }
+      );
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        message: "User fetched successfully",
+        data: user,
+      });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
 // authRouter.post

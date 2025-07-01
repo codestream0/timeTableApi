@@ -24,7 +24,7 @@ const subjectSchema = z.object({
   time: z.enum([
     "8:00 -- 10:00",
     "10:00 -- 12:00",
-    "12:00 -- 2:00",
+    "12:00 -- 1:00",
     "2:00 -- 4:00",
     "4:00 -- 6:00",
   ]),
@@ -67,12 +67,12 @@ subjectRouter.post(
       });
 
       if (existingSubject) {
-        res.json({
-          message: "subject is been occupied",
+        return res.status(400).json({
+          message: "subject has been occupied",
         });
       }
 
-      subjectCollection
+      const result = await subjectCollection
         .insertOne({
           userId: userInfo?._id,
           ...subjectInfo,
@@ -83,13 +83,11 @@ subjectRouter.post(
           console.log("subject added successfully", result);
         });
 
-      res.json({
+        return res.status(201).json({
         message: "subject added successfully",
         subjectInfo,
         email: user.email,
       });
-
-      res.status(202).json({ message: "subject created" });
     } catch (error) {
       res.status(400).json({
         error: error instanceof z.ZodError ? error.errors : "server error",

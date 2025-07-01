@@ -3,14 +3,12 @@ import express from "express";
 import { authRouter } from "./routes/auth.routes";
 import { subjectRouter } from "./routes/subject.routes";
 import bodyParser from "body-parser";
-// server is right below
+
 const app = express();
-//
-// port is the port number on which the server will listen for incoming requests
 const port = 3000;
 
-// Middlewares
-app.use(cors({ origin: "*" })); // Allow all origins for CORS
+
+app.use(cors({ origin: "*" })); 
 
 app.use(bodyParser.json());
 
