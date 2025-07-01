@@ -5,7 +5,7 @@ import { subjectRouter } from "./routes/subject.routes";
 import bodyParser from "body-parser";
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 
 app.use(cors({ origin: "*" })); 
@@ -23,6 +23,6 @@ app.get("/", (req, res) => {
   res.send("Welcome to the API");
 });
 
-app.listen(port, () => {
+app.listen(port,  () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
