@@ -6,15 +6,11 @@ import bodyParser from "body-parser";
 
 const app = express();
 const port = process.env.PORT || 3000;
-
-
 app.use(cors({ origin: "*" })); 
 
 app.use(bodyParser.json());
 
 app.use(bodyParser.urlencoded({ extended: true }));
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/auth", authRouter);

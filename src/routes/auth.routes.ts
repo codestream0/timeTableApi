@@ -22,7 +22,6 @@ const signUpSchema = z.object({
   address: z.string(),
   dob: z.coerce.date(),
   role: z.enum(["Admin", "User", "Moderator"]).default("User"),
-  
 });
 
 const loginSchema = z.object({
@@ -105,8 +104,8 @@ authRouter.post("/login", async (req, res) => {
   console.log("Request body:", req.body);
   try {
     loginSchema.parse(req.body);
-    // const allUsers = await usersCollection.find({}).toArray();
-    // console.log(allUsers);
+    const allUsers = await usersCollection.find({}).toArray();
+    console.log(allUsers);
     const email = req.body.email.trim().toLowerCase();
     const password = req.body.password;
 
@@ -293,4 +292,3 @@ authRouter.get("/user/:id", authMiddleWare,
     }
   }
 );
-// authRouter.post
