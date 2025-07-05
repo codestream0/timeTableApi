@@ -67,7 +67,7 @@ subjectRouter.post(
         email: user.email,
       });
       console.log("userInfo", userInfo?._id);
-      
+
       const timeConflict = await subjectCollection.findOne({
         day: req.body.day,
         time: req.body.time,
@@ -79,7 +79,7 @@ subjectRouter.post(
         });
       }
 
-      const result = await subjectCollection
+      await subjectCollection
         .insertOne({
           userId: userInfo?._id,
           ...subjectInfo,
@@ -90,7 +90,7 @@ subjectRouter.post(
           console.log("subject added successfully", result);
         });
 
-        return res.status(201).json({
+      return res.status(201).json({
         message: "subject added successfully",
         subjectInfo,
         email: user.email,
@@ -113,7 +113,7 @@ subjectRouter.get("/subject-list", authMiddleWare, async (req, res) => {
     console.log("subjectList: ", subjectList);
     res.status(200).json({
       message: "subject fetched successfully",
-    subjectList,
+      data: subjectList,
       user: userInfo,
     });
   } catch (error) {
@@ -139,7 +139,7 @@ subjectRouter.put(
         // time: parsedData.time,
       };
       console.log("Updating subject with ID:", subjectId);
-      console.log("Update data:", updatedSubject); 
+      console.log("Update data:", updatedSubject);
 
       const result = await subjectCollection.updateOne(
         { _id: subjectId },
