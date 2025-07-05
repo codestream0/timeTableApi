@@ -122,10 +122,12 @@ subjectRouter.get("/subject-list", authMiddleWare, async (req, res) => {
 });
 
 subjectRouter.put(
+
   "/edit-subject",
   authMiddleWare,
   authorizeRoles("Admin", "Moderator"),
   async (req, res) => {
+    //
     try {
       const parsedData = updateSubjectSchema.parse(req.body);
       const subjectId = new ObjectId(parsedData.id);
